@@ -155,42 +155,46 @@ void I2C::pullup(uint8_t activate)
   }
 }
 
-//void I2C::scan()
-//{
-//  uint16_t tempTime = timeOutDelay;
-//  timeOut(80);
-//  uint8_t totalDevicesFound = 0;
+
+void I2C::scan()
+{
+  uint16_t tempTime = timeOutDelay;
+  timeOut(80);
+  uint8_t totalDevicesFound = 0;
+  scanAdr = 0 ;
 //  Serial.println("Scanning for devices...please wait");
 //  Serial.println();
-//  for(uint8_t s = 0; s <= 0x7F; s++)
-//  {
-//    returnStatus = 0;
-//    returnStatus = start();
-//    if(!returnStatus)
-//    { 
-//      returnStatus = sendAddress(SLA_W(s));
-//    }
-//    if(returnStatus)
-//    {
-//      if(returnStatus == 1)
-//      {
+  for(uint8_t s = 0; s <= 0x7F; s++)
+  {
+    returnStatus = 0;
+    returnStatus = start();
+    if(!returnStatus)
+    { 
+      returnStatus = sendAddress(SLA_W(s));
+    }
+    if(returnStatus)
+    {
+      if(returnStatus == 1)
+      {
 //        Serial.println("There is a problem with the bus, could not complete scan");
-//        timeOutDelay = tempTime;
-//        return;
-//      }
-//    }
-//    else
-//    {
+        timeOutDelay = tempTime;
+        return;
+      }
+    }
+    else
+    {
 //      Serial.print("Found device at address - ");
 //      Serial.print(" 0x");
 //      Serial.println(s,HEX);
-//      totalDevicesFound++;
-//    }
-//    stop();
-//  }
+        if( scanAdr == 0) scanAdr = s ;
+      
+      totalDevicesFound++;
+    }
+    stop();
+  }
 //  if(!totalDevicesFound){Serial.println("No devices found");}
-//  timeOutDelay = tempTime;
-//}
+  timeOutDelay = tempTime;
+}
 
 
 uint8_t I2C::available()
@@ -237,7 +241,9 @@ uint8_t I2C::write(uint8_t address, uint8_t registerAddress)
 {
   returnStatus = 0;
   returnStatus = start();
-  if(returnStatus){return(returnStatus);}
+  if(returnStatus){
+    return(returnStatus);
+  }
   returnStatus = sendAddress(SLA_W(address));
   if(returnStatus)
   {
@@ -268,29 +274,39 @@ uint8_t I2C::write(uint8_t address, uint8_t registerAddress, uint8_t data)
 {
   returnStatus = 0;
   returnStatus = start(); 
-  if(returnStatus){return(returnStatus);}
+  if(returnStatus){
+    return(returnStatus);
+  }
   returnStatus = sendAddress(SLA_W(address));
   if(returnStatus)
   {
-    if(returnStatus == 1){return(2);}
+    if(returnStatus == 1){
+      return(2);
+    }
     return(returnStatus);
   }
   returnStatus = sendByte(registerAddress);
   if(returnStatus)
   {
-    if(returnStatus == 1){return(3);}
+    if(returnStatus == 1){
+      return(3);
+    }
     return(returnStatus);
   }
   returnStatus = sendByte(data);
   if(returnStatus)
   {
-    if(returnStatus == 1){return(3);}
+    if(returnStatus == 1){
+      return(3);
+    }
     return(returnStatus);
   }
   returnStatus = stop();
   if(returnStatus)
   {
-    if(returnStatus == 1){return(7);}
+    if(returnStatus == 1){
+      return(7);
+    }
     return(returnStatus);
   }
   return(returnStatus);
@@ -313,11 +329,15 @@ uint8_t I2C::write(uint8_t address, uint8_t registerAddress, uint8_t *data, uint
 {
   returnStatus = 0;
   returnStatus = start();
-  if(returnStatus){return(returnStatus);}
+  if(returnStatus){
+    return(returnStatus);
+  }
   returnStatus = sendAddress(SLA_W(address));
   if(returnStatus)
   {
-    if(returnStatus == 1){return(2);}
+    if(returnStatus == 1){
+      return(2);
+    }
     return(returnStatus);
   }
   returnStatus = sendByte(registerAddress);
@@ -331,72 +351,87 @@ uint8_t I2C::write(uint8_t address, uint8_t registerAddress, uint8_t *data, uint
     returnStatus = sendByte(data[i]);
     if(returnStatus)
       {
-        if(returnStatus == 1){return(3);}
+        if(returnStatus == 1){
+          return(3);
+        }
         return(returnStatus);
       }
   }
   returnStatus = stop();
   if(returnStatus)
   {
-    if(returnStatus == 1){return(7);}
+    if(returnStatus == 1){
+      return(7);
+    }
     return(returnStatus);
   }
   return(returnStatus);
 }
 
-//uint8_t I2C::read(int address, int numberBytes)
-//{
-//  return(read((uint8_t) address, (uint8_t) numberBytes));
-//}
 
-uint8_t I2C::read(uint8_t address, uint8_t numberBytes)
+// Read a device whitout sending first the register to be read; code modified in order to allow that number of byte = 0 (needed for sensor 4525DO)   
+// return a status (0 = OK, others see above)
+uint8_t I2C::read(uint8_t address, uint8_t numberBytes) 
 {
   bytesAvailable = 0;
   bufferIndex = 0;
-  if(numberBytes == 0){numberBytes++;}
-  nack = numberBytes - 1;
+//  if(numberBytes == 0){numberBytes++;}
+//  nack = numberBytes - 1;
   returnStatus = 0;
   returnStatus = start();
-  if(returnStatus){return(returnStatus);}
+  if(returnStatus){
+    return(returnStatus);
+  }
   returnStatus = sendAddress(SLA_R(address));
   if(returnStatus)
   {
-    if(returnStatus == 1){return(5);}
+    if(returnStatus == 1){
+      return(5);
+    }
     return(returnStatus);
   }
-  for(uint8_t i = 0; i < numberBytes; i++)
-  {
-    if( i == nack )
-    {
-      returnStatus = receiveByte(0);
-      if(returnStatus == 1){return(6);}
-
-      if(returnStatus != MR_DATA_NACK){return(returnStatus);}
-    }
-    else
-    {
-      returnStatus = receiveByte(1);
-      if(returnStatus == 1){return(6);}
-      if(returnStatus != MR_DATA_ACK){return(returnStatus);}
-    }
-    data[i] = TWDR;
-    bytesAvailable = i+1;
-    totalBytes = i+1;
-  }
+  if(numberBytes > 0){
+      nack = numberBytes - 1;
+      for(uint8_t i = 0; i < numberBytes; i++)
+      {
+        if( i == nack )
+        {
+          returnStatus = receiveByte(0);
+          if(returnStatus == 1){
+            return(6);
+          }
+          if(returnStatus != MR_DATA_NACK){
+            return(returnStatus);
+          }
+        }
+        else
+        {
+          returnStatus = receiveByte(1);
+          if(returnStatus == 1){
+            return(6);
+          }
+          if(returnStatus != MR_DATA_ACK){
+            return(returnStatus);
+          }
+        }
+        data[i] = TWDR;
+        bytesAvailable = i+1;
+        totalBytes = i+1;
+      }
+  }    
   returnStatus = stop();
   if(returnStatus)
   {
-    if(returnStatus == 1){return(7);}
+    if(returnStatus == 1){ 
+      return(7);
+    }
     return(returnStatus);
   }
   return(returnStatus);
 }
 
-//uint8_t I2C::read(int address, int registerAddress, int numberBytes)
-//{
-//  return(read((uint8_t) address, (uint8_t) registerAddress, (uint8_t) numberBytes));
-//}
-
+// read a device after sending a command (= register address)
+// return a status (0 = OK, others see above)
 uint8_t I2C::read(uint8_t address, uint8_t registerAddress, uint8_t numberBytes)
 {
   bytesAvailable = 0;
@@ -405,23 +440,31 @@ uint8_t I2C::read(uint8_t address, uint8_t registerAddress, uint8_t numberBytes)
   nack = numberBytes - 1;
   returnStatus = 0;
   returnStatus = start();
-  if(returnStatus){return(returnStatus);}
+  if(returnStatus){
+    return(returnStatus);
+  }
   returnStatus = sendAddress(SLA_W(address));
   if(returnStatus)
   {
-    if(returnStatus == 1){return(2);}
+    if(returnStatus == 1){
+      return(2);
+    }
     return(returnStatus);
   }
   returnStatus = sendByte(registerAddress);
   if(returnStatus)
   {
-    if(returnStatus == 1){return(3);}
+    if(returnStatus == 1){
+      return(3);
+    }
     return(returnStatus);
   }
   returnStatus = start();
   if(returnStatus)
   {
-    if(returnStatus == 1){return(4);}
+    if(returnStatus == 1){
+      return(4);
+    }
     return(returnStatus);
   }
   returnStatus = sendAddress(SLA_R(address));
@@ -435,14 +478,22 @@ uint8_t I2C::read(uint8_t address, uint8_t registerAddress, uint8_t numberBytes)
     if( i == nack )
     {
       returnStatus = receiveByte(0);
-      if(returnStatus == 1){return(6);}
-      if(returnStatus != MR_DATA_NACK){return(returnStatus);}
+      if(returnStatus == 1){
+        return(6);
+      }
+      if(returnStatus != MR_DATA_NACK){
+        return(returnStatus);
+      }
     }
     else
     {
       returnStatus = receiveByte(1);
-      if(returnStatus == 1){return(6);}
-      if(returnStatus != MR_DATA_ACK){return(returnStatus);}
+      if(returnStatus == 1){
+        return(6);
+      }
+      if(returnStatus != MR_DATA_ACK){
+        return(returnStatus);
+      }
     }
     data[i] = TWDR;
     bytesAvailable = i+1;
@@ -451,18 +502,22 @@ uint8_t I2C::read(uint8_t address, uint8_t registerAddress, uint8_t numberBytes)
   returnStatus = stop();
   if(returnStatus)
   {
-    if(returnStatus == 1){return(7);}
+    if(returnStatus == 1){
+      return(7);
+    }
     return(returnStatus);
   }
   return(returnStatus);
 }
 
+// Read a number of bytes in a specified buffer without sending first a register address
+// return a status (0 = OK, others see above)
 uint8_t I2C::read(uint8_t address, uint8_t numberBytes, uint8_t *dataBuffer)
 {
   bytesAvailable = 0;
   bufferIndex = 0;
-  if(numberBytes == 0){numberBytes++;}
-  nack = numberBytes - 1;
+//  if(numberBytes == 0){numberBytes++;}
+//  nack = numberBytes - 1;
   returnStatus = 0;
   returnStatus = start();
   if(returnStatus){return(returnStatus);}
@@ -472,33 +527,49 @@ uint8_t I2C::read(uint8_t address, uint8_t numberBytes, uint8_t *dataBuffer)
     if(returnStatus == 1){return(5);}
     return(returnStatus);
   }
-  for(uint8_t i = 0; i < numberBytes; i++)
-  {
-    if( i == nack )
-    {
-      returnStatus = receiveByte(0);
-      if(returnStatus == 1){return(6);}
-      if(returnStatus != MR_DATA_NACK){return(returnStatus);}
-    }
-    else
-    {
-      returnStatus = receiveByte(1);
-      if(returnStatus == 1){return(6);}
-      if(returnStatus != MR_DATA_ACK){return(returnStatus);}
-    }
-    dataBuffer[i] = TWDR;
-    bytesAvailable = i+1;
-    totalBytes = i+1;
-  }
+  if(numberBytes > 0) {
+     nack = numberBytes - 1; 
+     for(uint8_t i = 0; i < numberBytes; i++)
+      {
+        if( i == nack )
+        {
+          returnStatus = receiveByte(0);
+          if(returnStatus == 1){
+            return(6);
+          }
+          if(returnStatus != MR_DATA_NACK){
+            return(returnStatus);
+          }
+        }
+        else
+        {
+          returnStatus = receiveByte(1);
+          if(returnStatus == 1){
+            return(6);
+          }
+          if(returnStatus != MR_DATA_ACK){
+            return(returnStatus);
+          }
+        }
+        dataBuffer[i] = TWDR;
+        bytesAvailable = i+1;
+        totalBytes = i+1;
+      }
+   }    
   returnStatus = stop();
   if(returnStatus)
   {
-    if(returnStatus == 1){return(7);}
+    if(returnStatus == 1){
+      return(7);
+    }
     return(returnStatus);
   }
   return(returnStatus);
 }
 
+
+// Read a number of bytes in a specified buffer after sending a register address
+// this version is currently not used in openXsensor so it is in comment
 uint8_t I2C::read(uint8_t address, uint8_t registerAddress, uint8_t numberBytes, uint8_t *dataBuffer)
 {
   bytesAvailable = 0;
@@ -507,29 +578,39 @@ uint8_t I2C::read(uint8_t address, uint8_t registerAddress, uint8_t numberBytes,
   nack = numberBytes - 1;
   returnStatus = 0;
   returnStatus = start();
-  if(returnStatus){return(returnStatus);}
+  if(returnStatus){
+    return(returnStatus);
+  }
   returnStatus = sendAddress(SLA_W(address));
   if(returnStatus)
   {
-    if(returnStatus == 1){return(2);}
+    if(returnStatus == 1){
+      return(2);
+    }
     return(returnStatus);
   }
   returnStatus = sendByte(registerAddress);
   if(returnStatus)
   {
-    if(returnStatus == 1){return(3);}
+    if(returnStatus == 1){
+      return(3);
+    }
     return(returnStatus);
   }
   returnStatus = start();
   if(returnStatus)
   {
-    if(returnStatus == 1){return(4);}
+    if(returnStatus == 1){
+      return(4);
+    }
     return(returnStatus);
   }
   returnStatus = sendAddress(SLA_R(address));
   if(returnStatus)
   {
-    if(returnStatus == 1){return(5);}
+    if(returnStatus == 1){
+      return(5);
+    }
     return(returnStatus);
   }
   for(uint8_t i = 0; i < numberBytes; i++)
@@ -537,14 +618,22 @@ uint8_t I2C::read(uint8_t address, uint8_t registerAddress, uint8_t numberBytes,
     if( i == nack )
     {
       returnStatus = receiveByte(0);
-      if(returnStatus == 1){return(6);}
-      if(returnStatus != MR_DATA_NACK){return(returnStatus);}
+      if(returnStatus == 1){
+        return(6);
+      }
+      if(returnStatus != MR_DATA_NACK){
+        return(returnStatus);
+      }
     }
     else
     {
       returnStatus = receiveByte(1);
-      if(returnStatus == 1){return(6);}
-      if(returnStatus != MR_DATA_ACK){return(returnStatus);}
+      if(returnStatus == 1){ 
+        return(6);
+      }
+      if(returnStatus != MR_DATA_ACK){
+        return(returnStatus);
+      }
     }
     dataBuffer[i] = TWDR;
     bytesAvailable = i+1;
@@ -553,7 +642,9 @@ uint8_t I2C::read(uint8_t address, uint8_t registerAddress, uint8_t numberBytes,
   returnStatus = stop();
   if(returnStatus)
   {
-    if(returnStatus == 1){return(7);}
+    if(returnStatus == 1){
+      return(7);
+    }
     return(returnStatus);
   }
   return(returnStatus);
@@ -708,4 +799,5 @@ void I2C::lockUp()
 }
 
 I2C I2c = I2C();
+
 
